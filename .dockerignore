@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.gitignore
+.dockerignore
+Dockerfile
+npm-debug.log
+README.md
+data/
+st-analysis/
+.env*.local
+.DS_Store
+agents.md
