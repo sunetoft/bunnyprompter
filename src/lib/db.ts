@@ -9,84 +9,90 @@ let pgPool: Pool | null = null;
 
 const isPostgres = process.env.DB_USER && process.env.DB_PASS && (process.env.DB_HOST || process.env.INSTANCE_CONNECTION_NAME);
 
+let dbPromise: Promise<Pool | Database> | null = null;
+
 export async function getDb() {
-    if (isPostgres) {
-        if (pgPool) return pgPool;
+    if (dbPromise) return dbPromise;
 
-        const config: any = {
-            user: process.env.DB_USER,
-            password: process.env.DB_PASS,
-            database: process.env.DB_NAME,
-        };
+    dbPromise = (async () => {
+        if (isPostgres) {
+            const config: any = {
+                user: process.env.DB_USER,
+                password: process.env.DB_PASS,
+                database: process.env.DB_NAME,
+            };
 
-        if (process.env.INSTANCE_CONNECTION_NAME) {
-            // Cloud Run Unix socket
-            config.host = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
+            if (process.env.INSTANCE_CONNECTION_NAME) {
+                // Cloud Run Unix socket
+                config.host = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
+            } else {
+                config.host = process.env.DB_HOST || 'localhost';
+                config.port = parseInt(process.env.DB_PORT || '5432');
+            }
+
+            const pool = new Pool(config);
+            pgPool = pool; // Keep strictly for direct type checks if needed elsewhere, but rely on promise return
+
+            // Initialize Schema for Postgres
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS stock_cache (
+                    ticker TEXT PRIMARY KEY,
+                    data TEXT,
+                    updated_at BIGINT
+                );
+                CREATE TABLE IF NOT EXISTS themes (
+                    id TEXT PRIMARY KEY,
+                    title TEXT,
+                    tickers TEXT
+                );
+                CREATE TABLE IF NOT EXISTS prompts (
+                    id TEXT PRIMARY KEY,
+                    title TEXT,
+                    category TEXT,
+                    content TEXT
+                );
+                CREATE TABLE IF NOT EXISTS compare_prompts (
+                    id TEXT PRIMARY KEY,
+                    title TEXT,
+                    content TEXT
+                );
+                CREATE TABLE IF NOT EXISTS categories (
+                    id TEXT PRIMARY KEY,
+                    name TEXT
+                );
+                CREATE TABLE IF NOT EXISTS settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT
+                );
+            `);
+
+            return pool;
         } else {
-            config.host = process.env.DB_HOST || 'localhost';
-            config.port = parseInt(process.env.DB_PORT || '5432');
+            const dataDir = path.join(process.cwd(), 'data');
+            if (!fs.existsSync(dataDir)) {
+                fs.mkdirSync(dataDir, { recursive: true });
+            }
+
+            const db = await open({
+                filename: path.join(dataDir, 'bunnyprompter.db'),
+                driver: sqlite3.Database,
+            });
+            sqliteDb = db;
+
+            await db.exec(`
+                CREATE TABLE IF NOT EXISTS stock_cache (ticker TEXT PRIMARY KEY, data TEXT, updated_at INTEGER);
+                CREATE TABLE IF NOT EXISTS themes (id TEXT PRIMARY KEY, title TEXT, tickers TEXT);
+                CREATE TABLE IF NOT EXISTS prompts (id TEXT PRIMARY KEY, title TEXT, category TEXT, content TEXT);
+                CREATE TABLE IF NOT EXISTS compare_prompts (id TEXT PRIMARY KEY, title TEXT, content TEXT);
+                CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, name TEXT);
+                CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
+            `);
+
+            return db;
         }
+    })();
 
-        pgPool = new Pool(config);
-
-        // Initialize Schema for Postgres
-        await pgPool.query(`
-            CREATE TABLE IF NOT EXISTS stock_cache (
-                ticker TEXT PRIMARY KEY,
-                data TEXT,
-                updated_at BIGINT
-            );
-            CREATE TABLE IF NOT EXISTS themes (
-                id TEXT PRIMARY KEY,
-                title TEXT,
-                tickers TEXT
-            );
-            CREATE TABLE IF NOT EXISTS prompts (
-                id TEXT PRIMARY KEY,
-                title TEXT,
-                category TEXT,
-                content TEXT
-            );
-            CREATE TABLE IF NOT EXISTS compare_prompts (
-                id TEXT PRIMARY KEY,
-                title TEXT,
-                content TEXT
-            );
-            CREATE TABLE IF NOT EXISTS categories (
-                id TEXT PRIMARY KEY,
-                name TEXT
-            );
-            CREATE TABLE IF NOT EXISTS settings (
-                key TEXT PRIMARY KEY,
-                value TEXT
-            );
-        `);
-
-        return pgPool;
-    } else {
-        if (sqliteDb) return sqliteDb;
-
-        const dataDir = path.join(process.cwd(), 'data');
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
-        }
-
-        sqliteDb = await open({
-            filename: path.join(dataDir, 'bunnyprompter.db'),
-            driver: sqlite3.Database,
-        });
-
-        await sqliteDb.exec(`
-            CREATE TABLE IF NOT EXISTS stock_cache (ticker TEXT PRIMARY KEY, data TEXT, updated_at INTEGER);
-            CREATE TABLE IF NOT EXISTS themes (id TEXT PRIMARY KEY, title TEXT, tickers TEXT);
-            CREATE TABLE IF NOT EXISTS prompts (id TEXT PRIMARY KEY, title TEXT, category TEXT, content TEXT);
-            CREATE TABLE IF NOT EXISTS compare_prompts (id TEXT PRIMARY KEY, title TEXT, content TEXT);
-            CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, name TEXT);
-            CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
-        `);
-
-        return sqliteDb;
-    }
+    return dbPromise;
 }
 
 export async function queryStockCache(ticker: string) {

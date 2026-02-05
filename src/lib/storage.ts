@@ -49,6 +49,12 @@ export const getCategories = async (): Promise<Category[]> => {
     try {
         const res = await fetch('/api/categories');
         const categories = await res.json();
+
+        if (!Array.isArray(categories)) {
+            console.error('Invalid categories response:', categories);
+            return DEFAULT_CATEGORIES;
+        }
+
         const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
 
         // Migration: If API returns empty but localStorage has data, sync it up

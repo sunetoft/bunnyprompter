@@ -53,7 +53,6 @@ This method uses Google Cloud Build to build the container and deploy it to Clou
     ```
 
 ## Notes on Persistence
-## Notes on Persistence
 The application uses a hybrid approach for data storage:
 
 ### Database (Persistent & Shared)
@@ -62,11 +61,11 @@ The following data is stored in the connected SQL Database (Cloud SQL or SQLite 
 -   **Themes**: Created stock themes.
 -   **Compare Prompts**: Prompts used in the comparison tool.
 -   **Stock Cache**: Analyzed stock data (cached for performance).
+-   **Categories**: Custom categories for prompts.
+-   **Settings**: General settings including API Key (stored encrypted/protected by access controls if implemented, currently just in DB).
 
 ### Local Storage (Device Only)
-The following configuration is stored in your browser's `localStorage` for privacy and convenience:
--   **API Key**: Your Gemini API Key.
--   **Categories**: Custom categories for prompts.
--   **Settings**: UI preferences.
+The application is migrating away from local storage. Previously, keys and categories were stored here, but they are now automatically migrated to the database on first load.
+-   **Legacy Fallbacks**: Local storage is checked for migration purposes but is no longer the primary source of truth.
 
-*Note: If you clear your browser cache, you will only lose your API Key and custom Categories. Your main data (Prompts, Themes) remains safe in the database.*
+*Note: Data is now fully persistent in the database.*
