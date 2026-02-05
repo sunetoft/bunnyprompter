@@ -52,6 +52,14 @@ export async function getDb() {
                 title TEXT,
                 content TEXT
             );
+            CREATE TABLE IF NOT EXISTS categories (
+                id TEXT PRIMARY KEY,
+                name TEXT
+            );
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            );
         `);
 
         return pgPool;
@@ -73,6 +81,8 @@ export async function getDb() {
             CREATE TABLE IF NOT EXISTS themes (id TEXT PRIMARY KEY, title TEXT, tickers TEXT);
             CREATE TABLE IF NOT EXISTS prompts (id TEXT PRIMARY KEY, title TEXT, category TEXT, content TEXT);
             CREATE TABLE IF NOT EXISTS compare_prompts (id TEXT PRIMARY KEY, title TEXT, content TEXT);
+            CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, name TEXT);
+            CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
         `);
 
         return sqliteDb;
@@ -200,6 +210,66 @@ export async function saveComparePrompt(prompt: { id: string, title: string, con
         await (db as Database).run(
             'INSERT OR REPLACE INTO compare_prompts (id, title, content) VALUES (?, ?, ?)',
             [prompt.id, prompt.title, prompt.content]
+        );
+    }
+}
+
+export async function getAllCategories() {
+    const db = await getDb();
+    if (isPostgres) {
+        const res = await (db as Pool).query('SELECT * FROM categories');
+        return res.rows;
+    } else {
+        return await (db as Database).all('SELECT * FROM categories');
+    }
+}
+
+export async function saveCategory(category: { id: string, name: string }) {
+    const db = await getDb();
+    if (isPostgres) {
+        await (db as Pool).query(
+            'INSERT INTO categories (id, name) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET name = $2',
+            [category.id, category.name]
+        );
+    } else {
+        await (db as Database).run(
+            'INSERT OR REPLACE INTO categories (id, name) VALUES (?, ?)',
+            [category.id, category.name]
+        );
+    }
+}
+
+export async function deleteCategory(id: string) {
+    const db = await getDb();
+    if (isPostgres) {
+        await (db as Pool).query('DELETE FROM categories WHERE id = $1', [id]);
+    } else {
+        await (db as Database).run('DELETE FROM categories WHERE id = ?', [id]);
+    }
+}
+
+export async function getSetting(key: string) {
+    const db = await getDb();
+    if (isPostgres) {
+        const res = await (db as Pool).query('SELECT value FROM settings WHERE key = $1', [key]);
+        return res.rows[0]?.value;
+    } else {
+        const row = await (db as Database).get('SELECT value FROM settings WHERE key = ?', [key]);
+        return row?.value;
+    }
+}
+
+export async function saveSetting(key: string, value: string) {
+    const db = await getDb();
+    if (isPostgres) {
+        await (db as Pool).query(
+            'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
+            [key, value]
+        );
+    } else {
+        await (db as Database).run(
+            'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+            [key, value]
         );
     }
 }

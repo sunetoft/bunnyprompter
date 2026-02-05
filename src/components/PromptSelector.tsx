@@ -16,9 +16,12 @@ export default function PromptSelector({ onSelect }: PromptSelectorProps) {
 
     useEffect(() => {
         const loadData = async () => {
-            const promptsData = await getPrompts();
+            const [promptsData, categoriesData] = await Promise.all([
+                getPrompts(),
+                getCategories()
+            ]);
             setPrompts(promptsData);
-            setCategories(getCategories());
+            setCategories(categoriesData);
         };
         loadData();
     }, []);

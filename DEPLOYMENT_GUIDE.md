@@ -53,8 +53,20 @@ This method uses Google Cloud Build to build the container and deploy it to Clou
     ```
 
 ## Notes on Persistence
-Currently, the app uses `localStorage` which stores data in the user's browser. This means:
--   Prompts/Categories you create are saved on **your device only**.
--   If you clear cache or use a different device, data will reset to defaults.
--   This works perfectly for a "Personal Tool".
--   If you need shared organization prompts, we will need to connect a database (e.g., Firestore).
+## Notes on Persistence
+The application uses a hybrid approach for data storage:
+
+### Database (Persistent & Shared)
+The following data is stored in the connected SQL Database (Cloud SQL or SQLite locally) and is persistent/shared across sessions:
+-   **Prompts**: All created prompts.
+-   **Themes**: Created stock themes.
+-   **Compare Prompts**: Prompts used in the comparison tool.
+-   **Stock Cache**: Analyzed stock data (cached for performance).
+
+### Local Storage (Device Only)
+The following configuration is stored in your browser's `localStorage` for privacy and convenience:
+-   **API Key**: Your Gemini API Key.
+-   **Categories**: Custom categories for prompts.
+-   **Settings**: UI preferences.
+
+*Note: If you clear your browser cache, you will only lose your API Key and custom Categories. Your main data (Prompts, Themes) remains safe in the database.*

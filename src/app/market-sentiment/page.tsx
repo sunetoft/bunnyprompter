@@ -25,7 +25,7 @@ export default function MarketSentimentPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const geminiApiKey = getApiKey();
+                const geminiApiKey = await getApiKey();
                 const res = await fetch('/api/market-sentiment', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

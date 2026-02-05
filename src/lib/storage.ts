@@ -10,29 +10,82 @@ const STORAGE_KEYS = {
 
 const isBrowser = typeof window !== 'undefined';
 
-export const getApiKey = (): string => {
+export const getApiKey = async (): Promise<string> => {
     if (!isBrowser) return '';
-    return localStorage.getItem(STORAGE_KEYS.API_KEY) || '';
+    try {
+        const res = await fetch('/api/settings?key=api_key');
+        const data = await res.json();
+        const apiValue = data.value;
+
+        // Migration
+        const localKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
+        if (!apiValue && localKey) {
+            await saveApiKey(localKey);
+            return localKey;
+        }
+
+        return apiValue || '';
+    } catch {
+        return '';
+    }
 };
 
-export const saveApiKey = (key: string) => {
+export const saveApiKey = async (key: string) => {
     if (!isBrowser) return;
+    await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'api_key', value: key })
+    });
+    // Also update local storage for redundancy/fallback if needed, or simply remove it. 
+    // Let's keep it in sync for now or maybe just clear it to avoid confusion? 
+    // The requirement is persistent storage, so let's prefer DB. 
+    // We can leave localStorage alone or update it as cache. 
     localStorage.setItem(STORAGE_KEYS.API_KEY, key);
 };
 
-export const getCategories = (): Category[] => {
+export const getCategories = async (): Promise<Category[]> => {
     if (!isBrowser) return DEFAULT_CATEGORIES;
-    const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-    if (!stored) {
-        localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(DEFAULT_CATEGORIES));
+    try {
+        const res = await fetch('/api/categories');
+        const categories = await res.json();
+        const stored = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+
+        // Migration: If API returns empty but localStorage has data, sync it up
+        if ((!categories || categories.length === 0) && stored) {
+            const localCats: Category[] = JSON.parse(stored);
+            for (const cat of localCats) {
+                await addCategory(cat);
+            }
+            return localCats;
+        }
+
+        if (!categories || categories.length === 0) {
+            // Seed defaults if absolutely nothing exists
+            for (const cat of DEFAULT_CATEGORIES) {
+                await addCategory(cat);
+            }
+            return DEFAULT_CATEGORIES;
+        }
+
+        return categories;
+    } catch {
         return DEFAULT_CATEGORIES;
     }
-    return JSON.parse(stored);
 };
 
-export const saveCategories = (categories: Category[]) => {
+export const addCategory = async (category: Category) => {
     if (!isBrowser) return;
-    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+    await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(category)
+    });
+};
+
+export const deleteCategory = async (id: string) => {
+    if (!isBrowser) return;
+    await fetch(`/api/categories?id=${id}`, { method: 'DELETE' });
 };
 
 export const getPrompts = async (): Promise<PromptTemplate[]> => {

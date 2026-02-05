@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { PromptTemplate, Category, ComparePrompt } from '@/lib/types';
-import { getPrompts, savePrompts, getCategories, saveCategories, getApiKey, saveApiKey, getComparePrompts, saveComparePrompts } from '@/lib/storage';
+import { getPrompts, savePrompts, getCategories, addCategory, deleteCategory, getApiKey, saveApiKey, getComparePrompts, saveComparePrompts } from '@/lib/storage';
 import styles from '@/styles/components.module.css';
 import Link from 'next/link';
 
@@ -31,14 +31,15 @@ export default function ManagePage() {
     const [newCompareContent, setNewCompareContent] = useState('');
 
     const refreshData = async () => {
-        const [promptsData, comparePromptsData] = await Promise.all([
+        const [promptsData, comparePromptsData, categoriesData] = await Promise.all([
             getPrompts(),
-            getComparePrompts()
+            getComparePrompts(),
+            getCategories()
         ]);
         setPrompts(promptsData);
-        setCategories(getCategories());
+        setCategories(categoriesData);
         setComparePrompts(comparePromptsData);
-        setApiKey(getApiKey());
+        setApiKey(await getApiKey());
     };
 
     useEffect(() => {
@@ -52,28 +53,29 @@ export default function ManagePage() {
         }
     };
 
-    const handleAddCategory = () => {
+    const handleAddCategory = async () => {
         if (!newCatName) return;
         const newCat: Category = {
             id: newCatName.toLowerCase().replace(/\s+/g, '-'),
             name: newCatName
         };
-        saveCategories([...categories, newCat]);
+        await addCategory(newCat);
         setNewCatName('');
         refreshData();
     };
 
-    const handleUpdateCategory = () => {
+    const handleUpdateCategory = async () => {
         if (!editingCat) return;
-        const updated = categories.map(c => c.id === editingCat.id ? editingCat : c);
-        saveCategories(updated);
+        // Since ID is primary key, we can just save it again to update name (if ID didn't change)
+        // If ID changed (not allowed in UI currently), we'd need to delete old and create new
+        await addCategory(editingCat);
         setEditingCat(null);
         refreshData();
     };
 
-    const handleDeleteCategory = (id: string) => {
+    const handleDeleteCategory = async (id: string) => {
         if (confirm('Delete this category?')) {
-            saveCategories(categories.filter(c => c.id !== id));
+            await deleteCategory(id);
             refreshData();
         }
     };
@@ -349,7 +351,7 @@ export default function ManagePage() {
                                 This key is stored only in your browser.
                             </p>
                         </div>
-                        <button className={styles.button} onClick={() => { saveApiKey(apiKey); alert('API Key saved!'); }}>
+                        <button className={styles.button} onClick={async () => { await saveApiKey(apiKey); alert('API Key saved!'); }}>
                             Save API Key
                         </button>
                     </div>
