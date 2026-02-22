@@ -140,6 +140,22 @@ export default function ManagePage() {
         }
     };
 
+    const handleDeleteAnalysisFiles = async () => {
+        if (confirm('Are you sure you want to delete ALL analysis files? This cannot be undone.')) {
+            try {
+                const res = await fetch('/api/analysis-files', { method: 'DELETE' });
+                if (res.ok) {
+                    alert('All analysis files have been deleted.');
+                } else {
+                    alert('Failed to delete files.');
+                }
+            } catch (error) {
+                console.error('Error deleting analysis files:', error);
+                alert('An error occurred.');
+            }
+        }
+    };
+
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -353,6 +369,20 @@ export default function ManagePage() {
                         </div>
                         <button className={styles.button} onClick={async () => { await saveApiKey(apiKey); alert('API Key saved!'); }}>
                             Save API Key
+                        </button>
+                    </div>
+
+                    <div style={{ marginTop: '2rem', borderTop: '1px solid var(--border)', paddingTop: '2rem' }}>
+                        <h3 className={styles.label} style={{ color: '#ff4444' }}>Danger Zone</h3>
+                        <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+                            Perform destructive actions here.
+                        </p>
+                        <button
+                            className={styles.buttonSecondary}
+                            style={{ color: '#ff4444', borderColor: '#ff4444' }}
+                            onClick={handleDeleteAnalysisFiles}
+                        >
+                            Delete All Analysis Files
                         </button>
                     </div>
                 </div>

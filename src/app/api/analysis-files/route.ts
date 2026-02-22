@@ -11,8 +11,8 @@ export async function GET() {
         }
 
         const files = fs.readdirSync(dirPath)
-            .filter(file => file.endsWith('.md'))
-            .map(file => file.replace('.md', ''));
+            .filter(file => file.endsWith('.xml'))
+            .map(file => file.replace('.xml', ''));
 
         return NextResponse.json({ files });
     } catch (error: any) {
@@ -28,15 +28,34 @@ export async function POST(req: NextRequest) {
         const contents: Record<string, string> = {};
 
         for (const ticker of tickers) {
-            const filePath = path.join(dirPath, `${ticker.toUpperCase()}.md`);
+            const filePath = path.join(dirPath, `${ticker.toUpperCase()}.xml`);
             if (fs.existsSync(filePath)) {
                 contents[ticker] = fs.readFileSync(filePath, 'utf8');
             } else {
-                contents[ticker] = 'Ingen analyse fundet for denne ticker.';
+                contents[ticker] = '<analysis><entry><content>Ingen analyse fundet for denne ticker.</content></entry></analysis>';
             }
         }
 
         return NextResponse.json({ contents });
+    } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
+
+export async function DELETE() {
+    try {
+        const dirPath = path.join(process.cwd(), 'st-analysis');
+
+        if (fs.existsSync(dirPath)) {
+            const files = fs.readdirSync(dirPath);
+            for (const file of files) {
+                if (file.endsWith('.xml') || file.endsWith('.md')) {
+                    fs.unlinkSync(path.join(dirPath, file));
+                }
+            }
+        }
+
+        return NextResponse.json({ success: true, message: 'All analysis files deleted' });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
 
         if (safeTickers.length > 0) {
             const cspFlag = includeCSP ? "" : "--skip-csp";
-            const { stdout, stderr } = await execPromise(`python3 "${scriptPath}" ${safeTickers.join(' ')} ${cspFlag}`);
+            const { stdout, stderr } = await execPromise(`"/Users/sunetoft/vibecode/PortfolioTracker/.venv/bin/python3" "${scriptPath}" ${safeTickers.join(' ')} ${cspFlag}`);
 
             if (stderr) {
                 console.warn('Python Warning/Error:', stderr);

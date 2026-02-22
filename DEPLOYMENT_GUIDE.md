@@ -22,7 +22,7 @@ This method uses Google Cloud Build to build the container and deploy it to Clou
 
 1.  **Run the deploy command**:
     ```bash
-    gcloud run deploy coderick-ai \
+    gcloud run deploy bunnyprompter \
       --source . \
       --project klart-353511 \
       --region us-central1 \
@@ -36,18 +36,18 @@ This method uses Google Cloud Build to build the container and deploy it to Clou
 
 1.  **Build the image**:
     ```bash
-    docker build -t gcr.io/PROJECT_ID/coderick-ai .
+    docker build -t gcr.io/PROJECT_ID/bunnyprompter .
     ```
 
 2.  **Push to Container Registry**:
     ```bash
-    docker push gcr.io/PROJECT_ID/coderick-ai
+    docker push gcr.io/PROJECT_ID/bunnyprompter
     ```
 
 3.  **Deploy**:
     ```bash
-    gcloud run deploy coderick-ai \
-      --image gcr.io/PROJECT_ID/coderick-ai \
+    gcloud run deploy bunnyprompter \
+      --image gcr.io/PROJECT_ID/bunnyprompter \
       --platform managed \
       --allow-unauthenticated
     ```

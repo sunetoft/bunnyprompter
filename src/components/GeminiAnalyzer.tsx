@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { runGeminiAnalysis } from '@/lib/gemini';
 import styles from '@/styles/components.module.css';
+import AnalysisViewer from './AnalysisViewer';
 
 interface GeminiAnalyzerProps {
     prompt: string;
@@ -122,18 +123,10 @@ export default function GeminiAnalyzer({ prompt, tickers }: GeminiAnalyzerProps)
             {response && (
                 <div className={styles.card} style={{ borderColor: '#4285F4' }}>
                     <label className={styles.label} style={{ color: '#4285F4' }}>Gemini Analysis Result</label>
-                    <div
-                        style={{
-                            fontSize: '1rem',
-                            lineHeight: '1.6',
-                            whiteSpace: 'pre-wrap',
-                            color: '#efefef',
-                            maxHeight: '400px',
-                            overflowY: 'auto',
-                            marginBottom: '1rem'
-                        }}
-                    >
-                        {response}
+                    <div style={{ marginBottom: '1rem' }}>
+                        <AnalysisViewer
+                            xmlContent={`<?xml version="1.0" encoding="UTF-8"?><analysis><entry><timestamp>Lige nu</timestamp><content><![CDATA[${response}]]></content></entry></analysis>`}
+                        />
                     </div>
 
                     {!showSelection && !saveSuccess && (
@@ -142,7 +135,7 @@ export default function GeminiAnalyzer({ prompt, tickers }: GeminiAnalyzerProps)
                             onClick={() => setShowSelection(true)}
                             style={{ width: '100%', marginBottom: '0.5rem' }}
                         >
-                            Gem til MarkDown fil (.md)
+                            Gem til XML fil (.xml)
                         </button>
                     )}
 

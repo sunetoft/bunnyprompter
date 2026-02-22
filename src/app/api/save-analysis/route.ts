@@ -22,23 +22,30 @@ export async function POST(req: NextRequest) {
         }
 
         const timestamp = new Date().toLocaleString('da-DK', { timeZone: 'Europe/Copenhagen' });
-        const formattedContent = `\n---\n## Analysis: ${timestamp}\n\n${content}\n\n`;
+        // Clean content for XML (basic escaping if needed, though for now we'll wrap in CDATA or just simple tags)
+        // For simplicity and since it might contain markdown or HTML, let's use a structured entry
+        const xmlEntry = `
+    <entry>
+        <timestamp>${timestamp}</timestamp>
+        <content><![CDATA[${content}]]></content>
+    </entry>`;
 
         const results = [];
 
         for (const ticker of tickers) {
-            const fileName = `${ticker.trim().toUpperCase()}.md`;
+            const fileName = `${ticker.trim().toUpperCase()}.xml`;
             const filePath = path.join(dirPath, fileName);
 
-            let existingContent = '';
+            let fileContent = '';
             if (fs.existsSync(filePath)) {
-                existingContent = fs.readFileSync(filePath, 'utf8');
+                const existing = fs.readFileSync(filePath, 'utf8');
+                // Insert new entry after <analysis> tag
+                fileContent = existing.replace('<analysis>', `<analysis>${xmlEntry}`);
+            } else {
+                fileContent = `<?xml version="1.0" encoding="UTF-8"?>\n<analysis>${xmlEntry}\n</analysis>`;
             }
 
-            // Prepend new analysis to the top
-            const newFileContent = `# Stock Analysis: ${ticker.toUpperCase()}\n${formattedContent}${existingContent}`;
-
-            fs.writeFileSync(filePath, newFileContent, 'utf8');
+            fs.writeFileSync(filePath, fileContent, 'utf8');
             results.push(fileName);
         }
 
